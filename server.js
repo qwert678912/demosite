@@ -22,13 +22,18 @@ app.use(
 /* ---------------------------
    S3 CONFIG (Backblaze B2)
 ------------------------------*/
+/* ---------------------------
+   S3 CONFIG (Backblaze B2)
+------------------------------*/
 const s3 = new AWS.S3({
-  endpoint: new AWS.Endpoint(`https://s3.${process.env.B2_REGION}.backblazeb2.com`),
-  region: process.env.B2_REGION,
-  accessKeyId: process.env.B2_KEY_ID,
-  secretAccessKey: process.env.B2_APP_KEY,
+  endpoint: new AWS.Endpoint("https://s3.us-east-005.backblazeb2.com"),
+  region: "us-east-005",
   signatureVersion: "v4",
-  s3ForcePathStyle: true,
+  credentials: {
+    accessKeyId: process.env.B2_KEY_ID,
+    secretAccessKey: process.env.B2_APP_KEY,
+  },
+  s3ForcePathStyle: true
 });
 
 /* ---------------------------
@@ -104,3 +109,4 @@ app.get("/", (req, res) => {
 app.listen(process.env.PORT, () => {
   console.log(`Server running → http://localhost:${process.env.PORT}`);
 });
+
