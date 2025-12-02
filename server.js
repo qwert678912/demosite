@@ -7,7 +7,17 @@ const path = require("path");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
+
+// FIX FOR CSS MIME TYPE
+app.use(
+  express.static("public", {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".css")) {
+        res.setHeader("Content-Type", "text/css");
+      }
+    },
+  })
+);
 
 /* ---------------------------
    S3 CONFIG (Backblaze B2)
@@ -31,8 +41,7 @@ app.get("/sign-put", async (req, res) => {
     const params = {
       Bucket: process.env.B2_BUCKET,
       Key: fileName,
-      Expires: 300, // 5 mins
-      // DO NOT ADD Content-Type (Backblaze will block it)
+      Expires: 300,
     };
 
     const uploadURL = await s3.getSignedUrlPromise("putObject", params);
@@ -53,7 +62,7 @@ app.get("/signed-get", async (req, res) => {
     const params = {
       Bucket: process.env.B2_BUCKET,
       Key: fileName,
-      Expires: 600, // 10 mins
+      Expires: 600,
     };
 
     const viewURL = await s3.getSignedUrlPromise("getObject", params);
