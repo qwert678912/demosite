@@ -1,0 +1,97 @@
+require("dotenv").config();
+const express = require("express");
+const AWS = require("aws-sdk");
+const cors = require("cors");
+const path = require("path");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
+
+/* ---------------------------
+   S3 CONFIG (Backblaze B2)
+------------------------------*/
+const s3 = new AWS.S3({
+  endpoint: new AWS.Endpoint(`https://s3.${process.env.B2_REGION}.backblazeb2.com`),
+  region: process.env.B2_REGION,
+  accessKeyId: process.env.B2_KEY_ID,
+  secretAccessKey: process.env.B2_APP_KEY,
+  signatureVersion: "v4",
+  s3ForcePathStyle: true,
+});
+
+/* ---------------------------
+   CREATE PRESIGNED PUT URL
+------------------------------*/
+app.get("/sign-put", async (req, res) => {
+  try {
+    const fileName = req.query.file;
+
+    const params = {
+      Bucket: process.env.B2_BUCKET,
+      Key: fileName,
+      Expires: 300, // 5 mins
+      // DO NOT ADD Content-Type (Backblaze will block it)
+    };
+
+    const uploadURL = await s3.getSignedUrlPromise("putObject", params);
+    res.json({ uploadURL });
+  } catch (err) {
+    console.error("SIGN PUT ERROR:", err);
+    res.status(500).json({ error: "Failed to generate PUT URL" });
+  }
+});
+
+/* ---------------------------
+   CREATE PRESIGNED GET URL
+------------------------------*/
+app.get("/signed-get", async (req, res) => {
+  try {
+    const fileName = req.query.file;
+
+    const params = {
+      Bucket: process.env.B2_BUCKET,
+      Key: fileName,
+      Expires: 600, // 10 mins
+    };
+
+    const viewURL = await s3.getSignedUrlPromise("getObject", params);
+    res.json({ viewURL });
+  } catch (err) {
+    console.error("SIGN GET ERROR:", err);
+    res.status(500).json({ error: "Failed to generate GET URL" });
+  }
+});
+
+/* ---------------------------
+   LIST ALL FILES IN BUCKET
+------------------------------*/
+app.get("/list", async (req, res) => {
+  try {
+    const result = await s3
+      .listObjectsV2({
+        Bucket: process.env.B2_BUCKET,
+      })
+      .promise();
+
+    res.json(result.Contents || []);
+  } catch (err) {
+    console.error("LIST ERROR:", err);
+    res.status(500).json({ error: "Failed to list files" });
+  }
+});
+
+/* ---------------------------
+   SERVE FRONTEND
+------------------------------*/
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
+});
+
+/* ---------------------------
+   START SERVER
+------------------------------*/
+app.listen(process.env.PORT, () => {
+  console.log(`Server running → http://localhost:${process.env.PORT}`);
+});

@@ -1,0 +1,14 @@
+body {
+    font-family: Arial;
+    padding: 20px;
+    background: #f0f0f0;
+}
+
+h2, h3 {
+    color: #333;
+}
+
+img, video {
+    margin: 10px;
+    border-radius: 6px;
+}
